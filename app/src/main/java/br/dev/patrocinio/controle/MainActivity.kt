@@ -1,15 +1,17 @@
 package br.dev.patrocinio.controle
 
 import android.os.Bundle
+import android.view.MotionEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -23,21 +25,12 @@ import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
-import android.view.MotionEvent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-
 
 @OptIn(ExperimentalComposeUiApi::class)
 class MainActivity : ComponentActivity() {
@@ -181,6 +174,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    // Função atualizada do ArrowButton
     @Composable
     fun ArrowButton(
         icon: ImageVector,
@@ -191,7 +185,7 @@ class MainActivity : ComponentActivity() {
     ) {
         var isPressed by remember { mutableStateOf(false) }
         val buttonColor by animateColorAsState(
-            targetValue = if(isPressed) Color.LightGray else Color.Gray
+            targetValue = if (isPressed) Color.LightGray else Color.Gray
         )
 
         Button(
@@ -201,18 +195,20 @@ class MainActivity : ComponentActivity() {
                 .pointerInteropFilter { event ->
                     when (event.action) {
                         MotionEvent.ACTION_DOWN -> {
-                            onPress()  // Movimento contínuo enquanto pressionado
+                            isPressed = true  // Atualiza o estado para pressionado
+                            onPress()         // Iniciar ação associada
                             true
                         }
                         MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                            onRelease()  // Para o movimento quando soltar
+                            isPressed = false // Atualiza o estado para não pressionado
+                            onRelease()       // Finalizar ação associada
                             true
                         }
                         else -> false
                     }
                 },
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color.Gray,
+                containerColor = buttonColor,  // Usa o buttonColor calculado
                 contentColor = Color.White
             )
         ) {
@@ -247,6 +243,7 @@ class MainActivity : ComponentActivity() {
             }
         } catch (e: IOException) {
             e.printStackTrace()
+            // Aqui você pode adicionar lógica para notificar o usuário em caso de erro
         }
     }
 
