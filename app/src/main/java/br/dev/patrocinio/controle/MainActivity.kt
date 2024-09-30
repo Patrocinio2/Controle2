@@ -3,31 +3,42 @@ package br.dev.patrocinio.controle
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.vector.ImageVector
+import br.dev.patrocinio.controle.ui.theme.ControleTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.io.IOException
+import android.view.MotionEvent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.ui.tooling.preview.Preview
-import br.dev.patrocinio.controle.ui.theme.ControleTheme
+import androidx.compose.ui.ExperimentalComposeUiApi
 
 class MainActivity : ComponentActivity() {
+
+    private val client = OkHttpClient()
+    private val robotIp = "http://192.168.4.1"  // Defina o IP do ESP8266 (alterar se necessário)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
             ControleTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -37,14 +48,12 @@ class MainActivity : ComponentActivity() {
                             .background(Color(0xFF006400))
                             .padding(innerPadding)
                     ) {
-                        // Adiciona a imagem centralizada
+                        // Layout mantido
                         CenteredImage(modifier = Modifier.align(Alignment.Center))
-                        // Adiciona os botões na lateral esquerda
                         ControlButtonsLeft(
                             buttonSize = 120.dp,
                             modifier = Modifier.align(Alignment.CenterStart)
                         )
-                        // Adiciona os botões de direção na lateral direita
                         ControlButtonsRight(
                             buttonSize = 120.dp,
                             modifier = Modifier.align(Alignment.CenterEnd)
@@ -54,109 +63,182 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-}
 
-// Função para os botões de controle à esquerda
-@Composable
-fun ControlButtonsLeft(buttonSize: androidx.compose.ui.unit.Dp, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.padding(start = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp) // Espaçamento entre os botões
-    ) {
-        ArrowButton(
-            icon = Icons.Filled.ArrowUpward,
-            contentDescription = "Up",
-            size = buttonSize,
-            onClick = { /* Ação para cima */ }
-        )
-        ArrowButton(
-            icon = Icons.Filled.ArrowDownward,
-            contentDescription = "Down",
-            size = buttonSize,
-            onClick = { /* Ação para baixo */ }
-        )
-    }
-}
+    // Função para os botões de controle à esquerda
+    @Composable
+    fun ControlButtonsLeft(buttonSize: androidx.compose.ui.unit.Dp, modifier: Modifier = Modifier) {
+        val coroutineScope = rememberCoroutineScope()
 
-// Função para os botões de controle à direita
-@Composable
-fun ControlButtonsRight(buttonSize: androidx.compose.ui.unit.Dp, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.padding(end = 16.dp), // Espaçamento do lado direito da tela
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp) // Espaçamento entre os botões
-    ) {
-        ArrowButton(
-            icon = Icons.Filled.ArrowBack,
-            contentDescription = "Left",
-            size = buttonSize,
-            onClick = { /* Ação para esquerda */ }
-        )
-        ArrowButton(
-            icon = Icons.Filled.ArrowForward,
-            contentDescription = "Right",
-            size = buttonSize,
-            onClick = { /* Ação para direita */ }
-        )
-    }
-}
-
-// Função para o botão com seta
-@Composable
-fun ArrowButton(
-    icon: ImageVector,
-    contentDescription: String,
-    size: androidx.compose.ui.unit.Dp,
-    onClick: () -> Unit
-) {
-    Button(
-        onClick = onClick,
-        modifier = Modifier
-            .size(width = 200.dp, height = size) // Tamanho retangular
-            .background(Color.Gray), // Cor do botão
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color.Gray, // Cor do botão
-            contentColor = Color.White
-        )
-    ) {
-        Icon(
-            icon,
-            contentDescription = contentDescription,
-            modifier = Modifier.size(48.dp) // Tamanho da seta
-        )
-    }
-}
-
-// Função para a imagem centralizada
-@Composable
-fun CenteredImage(modifier: Modifier = Modifier) {
-    Image(
-        painter = painterResource(id = R.drawable.pngwing), // Substitua pelo nome correto da imagem
-        contentDescription = "Example Image",
-        modifier = modifier.size(200.dp), // Define o tamanho da imagem
-        contentScale = ContentScale.Crop // Ajusta a imagem ao contêiner
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun ControlButtonsPreview() {
-    ControleTheme {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF006400))
+        Column(
+            modifier = modifier.padding(start = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            CenteredImage(modifier = Modifier.align(Alignment.Center))
-            ControlButtonsLeft(
-                buttonSize = 120.dp,
-                modifier = Modifier.align(Alignment.CenterStart)
+            // Botão "Pra Cima"
+            ArrowButton(
+                icon = Icons.Filled.ArrowUpward,
+                contentDescription = "Up",
+                size = buttonSize,
+                onPress = {
+                    coroutineScope.launch(Dispatchers.IO) {
+                        sendCommandToRobot("F")  // Enviar comando 'F' para mover o robô para frente
+                    }
+                },
+                onRelease = {
+                    coroutineScope.launch(Dispatchers.IO) {
+                        sendCommandToRobot("S")  // Enviar comando 'S' para parar o robô quando soltar
+                    }
+                }
             )
-            ControlButtonsRight(
-                buttonSize = 120.dp,
-                modifier = Modifier.align(Alignment.CenterEnd)
+            // Botão "Pra Baixo"
+            ArrowButton(
+                icon = Icons.Filled.ArrowDownward,
+                contentDescription = "Down",
+                size = buttonSize,
+                onPress = {
+                    coroutineScope.launch(Dispatchers.IO) {
+                        sendCommandToRobot("B")  // Enviar comando 'B' para mover o robô para trás
+                    }
+                },
+                onRelease = {
+                    coroutineScope.launch(Dispatchers.IO) {
+                        sendCommandToRobot("S")  // Enviar comando 'S' para parar o robô quando soltar
+                    }
+                }
             )
+        }
+    }
+
+    // Função para os botões de controle à direita
+    @Composable
+    fun ControlButtonsRight(buttonSize: androidx.compose.ui.unit.Dp, modifier: Modifier = Modifier) {
+        val coroutineScope = rememberCoroutineScope()
+
+        Column(
+            modifier = modifier.padding(end = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Botão "Esquerda"
+            ArrowButton(
+                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Left",
+                size = buttonSize,
+                onPress = {
+                    coroutineScope.launch(Dispatchers.IO) {
+                        sendCommandToRobot("L")  // Enviar comando 'L' para mover o robô para a esquerda
+                    }
+                },
+                onRelease = {
+                    coroutineScope.launch(Dispatchers.IO) {
+                        sendCommandToRobot("S")  // Enviar comando 'S' para parar o robô quando soltar
+                    }
+                }
+            )
+            // Botão "Direita"
+            ArrowButton(
+                icon = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = "Right",
+                size = buttonSize,
+                onPress = {
+                    coroutineScope.launch(Dispatchers.IO) {
+                        sendCommandToRobot("R")  // Enviar comando 'R' para mover o robô para a direita
+                    }
+                },
+                onRelease = {
+                    coroutineScope.launch(Dispatchers.IO) {
+                        sendCommandToRobot("S")  // Enviar comando 'S' para parar o robô quando soltar
+                    }
+                }
+            )
+        }
+    }
+
+    // Suprimir o aviso de API experimental para `pointerInteropFilter`
+    @OptIn(ExperimentalComposeUiApi::class)
+    @Composable
+    fun ArrowButton(
+        icon: ImageVector,
+        contentDescription: String,
+        size: androidx.compose.ui.unit.Dp,
+        onPress: () -> Unit,
+        onRelease: () -> Unit
+    ) {
+        Button(
+            onClick = { /* Vazio porque o onClick é tratado pelos eventos de toque abaixo */ },
+            modifier = Modifier
+                .size(width = 200.dp, height = size)
+                .pointerInteropFilter { event ->
+                    when (event.action) {
+                        MotionEvent.ACTION_DOWN -> {
+                            onPress()  // Movimento contínuo enquanto pressionado
+                            true
+                        }
+                        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                            onRelease()  // Para o movimento quando soltar
+                            true
+                        }
+                        else -> false
+                    }
+                },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.Gray,
+                contentColor = Color.White
+            )
+        ) {
+            Icon(
+                icon,
+                contentDescription = contentDescription,
+                modifier = Modifier.size(48.dp)
+            )
+        }
+    }
+
+    // Função para a imagem centralizada
+    @Composable
+    fun CenteredImage(modifier: Modifier = Modifier) {
+        Image(
+            painter = painterResource(id = R.drawable.pngwing),  // Verifique se a imagem está correta no diretório res/drawable
+            contentDescription = "Example Image",
+            modifier = modifier.size(200.dp),
+            contentScale = ContentScale.Crop
+        )
+    }
+
+    // Função para enviar comandos HTTP ao robô
+    private fun sendCommandToRobot(command: String) {
+        val url = "$robotIp/?State=$command"
+        val request = Request.Builder().url(url).build()
+
+        try {
+            val response = client.newCall(request).execute()
+            if (!response.isSuccessful) {
+                throw IOException("Erro inesperado: $response")
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
+    }
+
+    @Preview(showBackground = true)
+    @Composable
+    fun ControlButtonsPreview() {
+        ControleTheme {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF006400))
+            ) {
+                CenteredImage(modifier = Modifier.align(Alignment.Center))
+                ControlButtonsLeft(
+                    buttonSize = 120.dp,
+                    modifier = Modifier.align(Alignment.CenterStart)
+                )
+                ControlButtonsRight(
+                    buttonSize = 120.dp,
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                )
+            }
         }
     }
 }
