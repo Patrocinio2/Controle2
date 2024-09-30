@@ -36,7 +36,7 @@ import androidx.compose.ui.tooling.preview.Preview
 class MainActivity : ComponentActivity() {
 
     private val client = OkHttpClient()
-    private val robotIp = "http://192.168.4.1"  // Defina o IP do ESP8266 (alterar se necessário)
+    private val robotIp = "http://192.168.4.1"  // Defina o IP do robo
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
