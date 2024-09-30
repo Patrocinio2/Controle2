@@ -31,7 +31,15 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 
+
+@OptIn(ExperimentalComposeUiApi::class)
 class MainActivity : ComponentActivity() {
 
     private val client = OkHttpClient()
@@ -48,7 +56,15 @@ class MainActivity : ComponentActivity() {
                             .background(Color(0xFF006400))
                             .padding(innerPadding)
                     ) {
-                        // Layout mantido
+                        // Exibir o IP do robô no canto superior esquerdo sem o "http://"
+                        RobotIpDisplay(
+                            ip = robotIp.removePrefix("http://"),
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(16.dp)
+                        )
+
+                        // Layout existente
                         CenteredImage(modifier = Modifier.align(Alignment.Center))
                         ControlButtonsLeft(
                             buttonSize = 120.dp,
@@ -62,6 +78,17 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    // Função para exibir o IP do robô
+    @Composable
+    fun RobotIpDisplay(ip: String, modifier: Modifier = Modifier) {
+        Text(
+            text = ip,
+            modifier = modifier,
+            color = Color.White,
+            style = MaterialTheme.typography.bodyLarge
+        )
     }
 
     // Função para os botões de controle à esquerda
@@ -154,8 +181,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // Suprimir o aviso de API experimental para `pointerInteropFilter`
-    @OptIn(ExperimentalComposeUiApi::class)
     @Composable
     fun ArrowButton(
         icon: ImageVector,
@@ -164,6 +189,11 @@ class MainActivity : ComponentActivity() {
         onPress: () -> Unit,
         onRelease: () -> Unit
     ) {
+        var isPressed by remember { mutableStateOf(false) }
+        val buttonColor by animateColorAsState(
+            targetValue = if(isPressed) Color.LightGray else Color.Gray
+        )
+
         Button(
             onClick = { /* Vazio porque o onClick é tratado pelos eventos de toque abaixo */ },
             modifier = Modifier
@@ -229,6 +259,14 @@ class MainActivity : ComponentActivity() {
                     .fillMaxSize()
                     .background(Color(0xFF006400))
             ) {
+                // Exibir o IP do robô no preview sem o "http://"
+                RobotIpDisplay(
+                    ip = robotIp.removePrefix("http://"),
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(16.dp)
+                )
+
                 CenteredImage(modifier = Modifier.align(Alignment.Center))
                 ControlButtonsLeft(
                     buttonSize = 120.dp,
